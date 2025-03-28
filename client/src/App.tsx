@@ -254,7 +254,7 @@ function App() {
               line.trim() === 'Key Insights' || 
               line.trim() === 'Conclusion') {
             return (
-              <h2 key={`section-${index}`} className="text-white text-2xl font-bold mt-6 mb-4">
+              <h2 key={`section-${index}`} className="text-white text-2xl font-bold mb-6">
                 {line.trim()}
               </h2>
             );
@@ -264,7 +264,7 @@ function App() {
           if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
             const title = line.trim().replace(/^\*\*|\*\*$/g, '');
             return (
-              <h2 key={`header-${index}`} className="text-white text-2xl font-bold mt-6 mb-4">
+              <h2 key={`header-${index}`} className="text-white text-2xl font-bold mb-6">
                 {title}
               </h2>
             );
@@ -445,7 +445,23 @@ function App() {
                 <h3 className="text-xl font-semibold mb-4">Transcript</h3>
                 <div className="overflow-y-auto text-sm pr-4" style={{ height: CONTENT_HEIGHTS.TRANSCRIPT }}>
                   {transcript ? (
-                    <pre className="text-gray-300 whitespace-pre-wrap font-sans">{transcript}</pre>
+                    <pre className="text-gray-300 whitespace-pre-wrap font-sans">
+                      {transcript.split('\n').map((line, index) => {
+                        // Match timestamp pattern [MM:SS] or [HH:MM:SS]
+                        const timestampMatch = line.match(/^\[(\d{1,2}:)?(\d{1,2}:\d{2})\]/);
+                        if (timestampMatch) {
+                          const timestamp = timestampMatch[0];
+                          const text = line.slice(timestamp.length);
+                          return (
+                            <div key={index} className="mb-2">
+                              <span className="text-blue-400">{timestamp}</span>
+                              {text}
+                            </div>
+                          );
+                        }
+                        return <div key={index} className="mb-2">{line}</div>;
+                      })}
+                    </pre>
                   ) : (
                     <p className="text-gray-400">No transcript available</p>
                   )}
