@@ -44,6 +44,43 @@ interface SummaryResponse {
   transcript: string;
 }
 
+// Add this new component at the top level
+const LoadingProgress = () => {
+  const [progress, setProgress] = React.useState(0);
+
+  React.useEffect(() => {
+    // Simulate progress in 5 steps
+    const steps = [20, 45, 65, 85, 98];
+    let currentStep = 0;
+
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        setProgress(steps[currentStep]);
+        currentStep++;
+      }
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center p-6 bg-gray-700/50 rounded-lg border border-gray-600">
+      <div className="w-64 mb-4">
+        <div className="h-2 bg-gray-600 rounded-full">
+          <div 
+            className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 text-gray-400">
+        <div className="animate-spin w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full" />
+        <p>Generating summary... {progress}%</p>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [url, setUrl] = React.useState('');
   const [summary, setSummary] = React.useState('');
@@ -57,6 +94,9 @@ function App() {
   const [translatedSummary, setTranslatedSummary] = React.useState('');
   const [isTranslating, setIsTranslating] = React.useState(false);
   const [transcript, setTranscript] = React.useState('');
+  const [chatMessage, setChatMessage] = React.useState('');
+  const [chatHistory, setChatHistory] = React.useState<Array<{role: string, content: string}>>([]);
+  const [isChatting, setIsChatting] = React.useState(false);
 
   const resetApplication = () => {
     setUrl('');
@@ -71,6 +111,9 @@ function App() {
     setTranslatedSummary('');
     setIsTranslating(false);
     setTranscript('');
+    setChatMessage('');
+    setChatHistory([]);
+    setIsChatting(false);
   };
 
   const languages = [
@@ -169,6 +212,8 @@ function App() {
       console.log('- Transcript:', data.transcript ? `${data.transcript.length} chars` : 'null');
       console.log('- Full Summary Text:', data.summary);
       
+      console.log('Raw transcript data (first 500 chars):', data.transcript.substring(0, 500));
+      
       setSummary(data.summary);
       setTranscript(data.transcript || 'No transcript available');
       setUsedLanguage(data.language);
@@ -225,90 +270,210 @@ function App() {
     }
   };
 
-  // This is our custom renderer for summary content - no ReactMarkdown 
+  // Add this function at the top of the component or with other utility functions
+  const getTitle = (language: string) => {
+    const titles = {
+      'en': 'Summary',
+      'es': 'Resumen',
+      'fr': 'Résumé',
+      'pt': 'Resumo',
+      'de': 'Zusammenfassung',
+      'it': 'Riassunto',
+      'zh': '摘要',
+      'ja': '要約',
+      'ko': '요약',
+      'ru': 'Сводка'
+    };
+    // Get base language code (e.g., 'en' from 'en-US')
+    const baseLanguage = language.split('-')[0];
+    return titles[baseLanguage] || titles['en'];
+  };
+
+  // Process formatted text
+  const processFormattedText = (text: string) => {
+    return text
+      .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/&amp;#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+  };
+
+  // Update SummaryContent to use the shared function
   const SummaryContent = ({ content }: { content: string }) => {
     if (!content) return null;
     
-    // Split content into lines for processing
-    const lines = content.split('\n');
-    
-    // Check emoji pattern based on the backend prompt
-    const emojiPattern = /^([🔍📊📈📉💹⚡🔧🌐💻🔗💰💵🏦💼📱🎯🎨🔑💡⚙️⚠️❗❌🚫⛔✅👍💪🏆💯🔄🔨🛠️📝🌟💥🔥⭐💫])(\s+)/;
-    
-    // Process formatted text - convert [b]concept[/b] to bold
-    const processFormattedText = (text: string) => {
-      return text.replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>');
-    };
-    
     return (
       <div className="prose prose-invert max-w-none">
-        {lines.map((line, index) => {
-          // Skip empty lines
-          if (!line.trim()) {
-            return <div key={`empty-${index}`} className="h-4"></div>;
-          }
-          
-          // Process section headers (like **Summary** or Highlights)
-          if (line.trim() === 'Summary' || 
-              line.trim() === 'Highlights' || 
-              line.trim() === 'Key Insights' || 
-              line.trim() === 'Conclusion') {
-            return (
-              <h2 key={`section-${index}`} className="text-white text-2xl font-bold mb-6">
-                {line.trim()}
-              </h2>
-            );
-          }
-          
-          // Process markdown headers (**Title**)
-          if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
-            const title = line.trim().replace(/^\*\*|\*\*$/g, '');
-            return (
-              <h2 key={`header-${index}`} className="text-white text-2xl font-bold mb-6">
-                {title}
-              </h2>
-            );
-          }
-          
-          // Process emoji + concept lines
-          const emojiMatch = line.match(emojiPattern);
-          if (emojiMatch) {
-            const emoji = emojiMatch[1];
-            const rest = line.slice(emoji.length).trim();
-            
-            // Find concept (text before colon)
-            const colonIndex = rest.indexOf(':');
-            if (colonIndex > 0) {
-              let concept = rest.slice(0, colonIndex).trim();
-              const description = rest.slice(colonIndex + 1).trim();
-              
-              // Check for [b]concept[/b] format
-              const boldMatch = concept.match(/\[b\](.*?)\[\/b\]/);
-              if (boldMatch) {
-                concept = boldMatch[1]; // Extract the text between [b] tags
-              }
-              
-              return (
-                <p key={`emoji-line-${index}`} className="text-gray-300 mb-4 flex items-start">
-                  <span className="inline-block mr-2">{emoji}</span>
-                  <span>
-                    <strong className="text-white">{concept}:</strong>{' '}
-                    <span>{description}</span>
-                  </span>
-                </p>
-              );
-            }
-          }
-          
-          // Default paragraph rendering with processed bold tags
-          return (
-            <p key={`paragraph-${index}`} className="text-gray-300 mb-4" 
-               dangerouslySetInnerHTML={{ __html: processFormattedText(line) }}>
-            </p>
-          );
-        })}
+        <h2 className="text-2xl font-bold mb-6 text-white">
+          {getTitle(usedLanguage)}
+        </h2>
+        
+        <div 
+          className="text-gray-300 leading-relaxed space-y-4"
+          dangerouslySetInnerHTML={{ 
+            __html: processFormattedText(content)
+          }}
+        />
       </div>
     );
+  };
+
+  // Enhanced scrollToLatestMessage function with more robust element targeting
+  const scrollToLatestMessage = () => {
+    // Wait for DOM to fully update
+    setTimeout(() => {
+      // Try multiple potential scroll containers
+      const scrollContainers = [
+        document.querySelector('.overflow-y-auto'),
+        document.querySelector('.chat-messages-container')?.parentElement,
+        document.querySelector('.flex-1.overflow-y-auto')
+      ];
+      
+      // Try each container
+      for (const container of scrollContainers) {
+        if (container && container instanceof HTMLElement) {
+          // Force scroll to bottom with a delay to ensure content is rendered
+          container.scrollTop = container.scrollHeight + 1000;
+          
+          // For extra reliability, try again with a slightly longer delay
+          setTimeout(() => {
+            container.scrollTop = container.scrollHeight + 1000;
+          }, 50);
+        }
+      }
+    }, 10);
+    
+    // Last resort: try with a longer delay
+    setTimeout(() => {
+      const containers = document.querySelectorAll('.overflow-y-auto');
+      containers.forEach(container => {
+        if (container instanceof HTMLElement) {
+          container.scrollTop = container.scrollHeight + 1000;
+        }
+      });
+    }, 300);
+  };
+
+  // Add a mutation observer to detect DOM changes in the chat
+  React.useEffect(() => {
+    // Create a MutationObserver to detect when chat messages are added
+    const chatObserver = new MutationObserver(() => {
+      // Call scroll function whenever DOM changes
+      scrollToLatestMessage();
+    });
+    
+    // Start observing changes to the chat container
+    const observeChat = () => {
+      const chatContainer = document.querySelector('.chat-messages-container');
+      if (chatContainer) {
+        chatObserver.observe(chatContainer, { 
+          childList: true,
+          subtree: true,
+          characterData: true 
+        });
+      } else {
+        // If container not found, try again shortly
+        setTimeout(observeChat, 500);
+      }
+    };
+    
+    // Start observation
+    observeChat();
+    
+    // Cleanup on unmount
+    return () => chatObserver.disconnect();
+  }, []);
+
+  // Make chat history changes trigger scroll
+  React.useEffect(() => {
+    if (chatHistory.length > 0) {
+      // Call immediately
+      scrollToLatestMessage();
+      
+      // And again after a short delay to ensure content is rendered
+      setTimeout(scrollToLatestMessage, 100);
+      setTimeout(scrollToLatestMessage, 300);
+    }
+  }, [chatHistory]);
+
+  // Add a helper function to detect YouTube URLs in chat messages
+  const isYouTubeUrl = (message: string) => {
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    return youtubeRegex.test(message);
+  };
+
+  // Update the handleChat function
+  const handleChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatMessage.trim()) return;
+
+    const userMessage = chatMessage.trim();
+    setChatMessage('');
+
+    // Check if the message is a YouTube URL
+    if (isYouTubeUrl(userMessage)) {
+      // Reset all states
+      setSummary('');
+      setTranscript('');
+      setChatHistory([]);
+      setError(null);
+      setUsedLanguage('');
+      setVideoInfo(null);
+      setTargetLanguage('');
+      setTranslatedSummary('');
+      
+      // Set the URL and trigger summarization
+      setUrl(userMessage);
+      handleSubmit(e);
+      return;
+    }
+
+    // Regular chat handling continues here...
+    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    scrollToLatestMessage();
+    
+    setIsChatting(true);
+    try {
+      const videoId = extractVideoId(url);
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId,
+          message: userMessage,
+          context: {
+            transcript: transcript,
+            summary: summary,
+            videoTitle: videoInfo?.title
+          }
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      // Add AI response
+      setChatHistory(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      
+      // Aggressively scroll again
+      scrollToLatestMessage();
+      setTimeout(scrollToLatestMessage, 50);
+      setTimeout(scrollToLatestMessage, 150);
+
+    } catch (err) {
+      setError({
+        error: err instanceof Error ? err.message : 'Failed to get response',
+      });
+    } finally {
+      setIsChatting(false);
+      // Final scroll attempts
+      scrollToLatestMessage();
+      setTimeout(scrollToLatestMessage, 100);
+      setTimeout(scrollToLatestMessage, 300);
+    }
   };
 
   return (
@@ -321,12 +486,14 @@ function App() {
               onClick={resetApplication}
             />
           </div>
-          <h1 
-            className="text-4xl font-bold mb-2 cursor-pointer hover:text-gray-300 transition-colors"
-            onClick={resetApplication}
-          >
-            YouTube Video Summarizer
-          </h1>
+          <div className="inline-block">
+            <h1 
+              className="text-4xl font-bold mb-2 cursor-pointer hover:text-gray-300 transition-colors"
+              onClick={resetApplication}
+            >
+              YouTube Video Summarizer
+            </h1>
+          </div>
           <p className="text-gray-400">Get AI-powered summaries of any YouTube video</p>
         </div>
 
@@ -404,12 +571,7 @@ function App() {
 
         {loading && (
           <div className="flex justify-center items-center">
-            <div className="p-6 bg-gray-700/50 rounded-lg border border-gray-600">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
-                <p className="text-gray-400">Generating summary...</p>
-              </div>
-            </div>
+            <LoadingProgress />
           </div>
         )}
 
@@ -447,15 +609,15 @@ function App() {
                   {transcript ? (
                     <pre className="text-gray-300 whitespace-pre-wrap font-sans">
                       {transcript.split('\n').map((line, index) => {
-                        // Match timestamp pattern [MM:SS] or [HH:MM:SS]
-                        const timestampMatch = line.match(/^\[(\d{1,2}:)?(\d{1,2}:\d{2})\]/);
+                        const timestampMatch = line.match(/^\[(\d+:\d{2})\]/);
+                        
                         if (timestampMatch) {
                           const timestamp = timestampMatch[0];
                           const text = line.slice(timestamp.length);
                           return (
                             <div key={index} className="mb-2">
-                              <span className="text-blue-400">{timestamp}</span>
-                              {text}
+                              <span className="text-blue-400 mr-2">{timestamp}</span>
+                              <span>{text}</span>
                             </div>
                           );
                         }
@@ -521,9 +683,51 @@ function App() {
                     )}
                   </div>
                 </div>
-                <div className="overflow-y-auto pr-4" style={{ height: CONTENT_HEIGHTS.SUMMARY }}>
-                  {/* Replace ReactMarkdown with our custom renderer */}
+
+                {/* Main content area with single scrollbar */}
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  {/* Scrollable container for both summary and chat */}
+                  <div className="flex-1 overflow-y-auto pr-4 mb-4">
                   <SummaryContent content={summary} />
+                    
+                    {/* Chat History */}
+                    <div className="mt-6 space-y-4 chat-messages-container" id="chat-messages-container">
+                      {chatHistory.map((msg, index) => (
+                        <div 
+                          key={index} 
+                          className={`p-3 rounded-lg ${
+                            msg.role === 'user' ? 'bg-blue-600/20 ml-8' : 'bg-gray-700/50 mr-8'
+                          }`}
+                          dangerouslySetInnerHTML={{ 
+                            __html: processFormattedText(msg.content)
+                          }}
+                        />
+                      ))}
+                      {/* Invisible element at the bottom to scroll to */}
+                      <div id="scroll-anchor" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fixed chat input at bottom */}
+                <div className="mt-auto pt-4 border-t border-gray-600">
+                  <form onSubmit={handleChat} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      placeholder="Ask me anything about the video..."
+                      className="flex-1 px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={isChatting}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isChatting || !chatMessage.trim()}
+                      className="px-6 py-2 bg-blue-600 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      {isChatting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ask'}
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -531,8 +735,7 @@ function App() {
         )}
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>This tool uses OpenAI's GPT-3.5 Turbo model for summarization.</p>
-          <p>Powered by a secure backend to avoid CORS issues.</p>
+          <p>This tool uses AI for summarization.</p>
         </div>
       </div>
     </div>

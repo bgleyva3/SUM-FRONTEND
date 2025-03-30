@@ -1,18 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const { YoutubeTranscript } = require('youtube-transcript');
-const OpenAI = require('openai');
 const axios = require('axios');
 const { google } = require('googleapis');
 require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // Initialize YouTube API client
 const youtube = google.youtube({
@@ -33,6 +27,9 @@ function extractVideoId(url) {
   const match = url.match(regex);
   return match ? match[1] : null;
 }
+
+// Add at the top with other global variables
+const videoContexts = new Map(); // Store video contexts in memory (low cost solution)
 
 async function getVideoInfo(videoId) {
   try {
@@ -75,69 +72,39 @@ async function getVideoInfo(videoId) {
   }
 }
 
-async function generateSummary(transcript, videoInfo) {
+async function generateSummary(transcript, videoInfo, language) {
   try {
-    // Split transcript into chunks of roughly 5000 characters each
-    const chunkSize = 5000;
-    const chunks = [];
-    for (let i = 0; i < transcript.length; i += chunkSize) {
-      chunks.push(transcript.slice(i, i + chunkSize));
-    }
+    const prompt = `Create an engaging summary of this YouTube video transcript in ${language} language. The video is titled "${videoInfo?.title || 'Unknown Title'}" by ${videoInfo?.channelTitle || 'Unknown Channel'}.
 
-    // Process each chunk and get summaries
-    const chunkSummaries = [];
-    for (let chunk of chunks) {
-      let prompt = `Please summarize this part of the video transcript, focusing on the most important points:\n\n${chunk}`;
-      
-      const completion = await openai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "gpt-3.5-turbo-16k",
-        temperature: 0.7,
-        max_tokens: 1000
-      });
+Transcript:
+${transcript}
 
-      chunkSummaries.push(completion.choices[0].message.content);
-    }
+Important instructions:
+1. Write 3-4 clear paragraphs with double line breaks between them
+2. Add 5-8 relevant emojis naturally within the text (not at the start of paragraphs)
+3. Use **bold** for important terms and key concepts
+4. Make it conversational and engaging
+5. End with a question inviting further discussion
 
-    // Combine chunk summaries into a final summary
-    const combinedSummary = chunkSummaries.join('\n\n');
-    
-    let finalPrompt;
-    if (videoInfo && videoInfo.channelInfo) {
-      finalPrompt = `Please provide a comprehensive and detailed summary of this YouTube video by ${videoInfo.channelInfo.name} (${videoInfo.channelTitle}) about ${videoInfo.title}.
-The channel has ${parseInt(videoInfo.channelInfo.subscriberCount).toLocaleString()} subscribers and this video has ${parseInt(videoInfo.viewCount).toLocaleString()} views.
+Use these emojis where relevant: 🔍📊📈📉💹⚡🔧🌐💻🔗💰💵🏦💼📱🎯🎨🔑💡`;
 
-Based on the following preliminary summary, generate a detailed structured summary:
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
 
-${combinedSummary}`;
-    } else {
-      finalPrompt = `Please provide a comprehensive and detailed summary based on the following preliminary summary:\n\n${combinedSummary}`;
-    }
-
-    finalPrompt += `\n\nStructure the summary exactly in this format:
-
-**Summary**
-Write a comprehensive paragraph overview that thoroughly explains all the video's content, context, and main arguments. Each paragraph should focus on different aspects: introduction, main discussion points, and key takeaways. Make it detailed but clear including data, brands or any other relevant information.
-
-**Highlights**
-Write 3-6 unique highlights, each focusing on a different aspect. Each highlight must start with an emoji then important or relevant information. Do not repeat the emojis. Use different emojis for each sentence.
-Use these emojis: 🔍📊📈📉💹⚡🔧🌐💻🔗💰💵🏦💼📱🎯🎨🔑💡⚙️⚠️❗❌🚫⛔✅👍💪🏆💯🔄🔨🛠️📝🌟💥🔥⭐💫
-
-
-The transcript is:
-
-${transcript}`;
-
-    const finalCompletion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: finalPrompt }],
-      model: "gpt-3.5-turbo-16k",
-      temperature: 0.7,
-      max_tokens: 2000
-    });
-
-    return finalCompletion.choices[0].message.content;
+    return response.data.candidates[0].content.parts[0].text;
   } catch (error) {
-    console.error('Error in generateSummary:', error);
+    console.error('Error in generateSummary:', error.response?.data || error);
     throw error;
   }
 }
@@ -176,14 +143,19 @@ app.post('/api/summarize', async (req, res) => {
     try {
       console.log('\n1. Attempting to fetch transcript...');
       transcript = await YoutubeTranscript.fetchTranscript(videoId);
-      language = transcript[0].lang || 'unknown';
+      language = transcript[0].lang || 'en'; // Default to 'en' if no language detected
       console.log('Transcript fetch successful');
+      console.log('Language detected:', language);
       console.log('Transcript length:', transcript.length);
       
       // Format transcript with timestamps
+      let currentTime = 0; // Keep track of cumulative time
       rawTranscript = transcript.map(item => {
-        const minutes = Math.floor(item.offset / 60000);
-        const seconds = Math.floor((item.offset % 60000) / 1000);
+        // Convert duration from seconds to milliseconds and add to current time
+        currentTime += item.duration * 1000;
+        const totalSeconds = Math.floor(currentTime / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
         return `[${minutes}:${seconds.toString().padStart(2, '0')}] ${item.text}`;
       }).join('\n');
       
@@ -226,7 +198,7 @@ app.post('/api/summarize', async (req, res) => {
 
     const text = transcript.map(item => item.text).join(' ');
 
-    const summary = await generateSummary(text, videoInfo);
+    const summary = await generateSummary(text, videoInfo, language.split('-')[0]);
 
     console.log('\nSending response with transcript length:', rawTranscript.length);
     
@@ -351,6 +323,64 @@ app.get('/api/video-info', async (req, res) => {
     return res.status(500).json({ error: 'Failed to fetch video info' });
   }
 });
+
+// Update the chat endpoint to use Gemini
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+
+    const prompt = `You're discussing a video titled "${context.videoTitle}". 
+Use this transcript and summary as context for answering:
+
+Summary: ${context.summary}
+
+Transcript: ${context.transcript}
+
+User question: ${message}
+
+Important:
+1. Base your answer only on the video content
+2. Be concise and friendly
+3. Use **bold** for key terms
+4. If something isn't in the video content, say so
+5. Keep responses focused and relevant`;
+
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    return res.json({
+      reply: response.data.candidates[0].content.parts[0].text
+    });
+
+  } catch (error) {
+    console.error('Chat Error:', error.response?.data || error);
+    return res.status(500).json({ 
+      error: 'Failed to process chat message',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// Add instead
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
+// Add validation
+if (!GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY is not set in environment variables');
+  process.exit(1);
+}
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
