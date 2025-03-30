@@ -15,6 +15,10 @@ export const LAYOUT = {
   // Right column components
   SUMMARY_HEADER_HEIGHT: 40,
   TRANSLATE_BUTTON_HEIGHT: 40,
+  
+  // Auth-related components
+  AUTH_HEADER_HEIGHT: 64, // Height for the authentication header
+  USER_PROFILE_WIDTH: 240, // Width for the user profile dropdown
 } as const;
 
 // Calculated heights
@@ -27,4 +31,14 @@ export const CONTENT_HEIGHTS = {
   
   // For video info section (fixed height)
   VIDEO_INFO: `${LAYOUT.VIDEO_INFO_TOTAL_HEIGHT}px`,
-} as const; 
+  
+  // For login container
+  LOGIN_CONTAINER: '480px',
+} as const;
+
+// Auth-related constants
+export const AUTH = {
+  TRANSITION_DURATION: 300, // ms for animations
+  USER_MENU_WIDTH: 240, // Width of user dropdown menu
+  PROFILE_PICTURE_SIZE: 32, // Size of profile picture
+} as const;

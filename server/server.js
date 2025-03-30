@@ -3,6 +3,10 @@ const cors = require('cors');
 const { YoutubeTranscript } = require('youtube-transcript');
 const axios = require('axios');
 const { google } = require('googleapis');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
@@ -16,10 +20,98 @@ const youtube = google.youtube({
 
 // Configure CORS to only allow requests from your frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true // Allow cookies to be sent with requests
 }));
 
 app.use(express.json());
+app.use(cookieParser());
+
+// Configure session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Configure Google Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/auth/google/callback',
+    passReqToCallback: true
+  },
+  async (req, accessToken, refreshToken, profile, done) => {
+    try {
+      // Here you would typically find or create a user in your database
+      // For this example, we'll just use the profile directly
+      const user = {
+        id: profile.id,
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        picture: profile.photos[0].value
+      };
+      
+      return done(null, user);
+    } catch (error) {
+      return done(error, null);
+    }
+  }
+));
+
+// Serialize user to session
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+// Deserialize user from session
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Auth middleware to check if user is authenticated
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Authentication required', redirectToLogin: true });
+};
+
+// Auth Routes
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication, redirect to the frontend
+    res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+  }
+);
+
+app.get('/auth/user', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ isAuthenticated: true, user: req.user });
+  } else {
+    res.json({ isAuthenticated: false });
+  }
+});
+
+app.get('/auth/logout', (req, res) => {
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    res.json({ success: true });
+  });
+});
 
 // Extract YouTube video ID from URL
 function extractVideoId(url) {
@@ -109,7 +201,8 @@ Use these emojis where relevant: 🔍📊📈📉💹⚡🔧🌐💻🔗💰💵
   }
 }
 
-app.post('/api/summarize', async (req, res) => {
+// Now require authentication for the main features
+app.post('/api/summarize', isAuthenticated, async (req, res) => {
   try {
     const { url } = req.body;
     console.log('\n--- Starting transcript fetch process ---');
@@ -202,6 +295,9 @@ app.post('/api/summarize', async (req, res) => {
 
     console.log('\nSending response with transcript length:', rawTranscript.length);
     
+    // Store the user's activity
+    console.log(`User ${req.user.name} (${req.user.email}) summarized video: ${videoId}`);
+    
     return res.json({ 
       summary: summary,
       transcript: rawTranscript,
@@ -230,7 +326,8 @@ app.post('/api/summarize', async (req, res) => {
   }
 });
 
-app.post('/api/translate', async (req, res) => {
+// This endpoint is also protected - requires login
+app.post('/api/translate', isAuthenticated, async (req, res) => {
   try {
     const { text, targetLanguage, sourceLanguage } = req.body;
 
@@ -272,6 +369,7 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
+// This endpoint is public - basic video info doesn't require login
 app.get('/api/video-info', async (req, res) => {
   try {
     const { videoId } = req.query;
@@ -324,8 +422,8 @@ app.get('/api/video-info', async (req, res) => {
   }
 });
 
-// Update the chat endpoint to use Gemini
-app.post('/api/chat', async (req, res) => {
+// Chat endpoint requires authentication too
+app.post('/api/chat', isAuthenticated, async (req, res) => {
   try {
     const { message, context } = req.body;
 

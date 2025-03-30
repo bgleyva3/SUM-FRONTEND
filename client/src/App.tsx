@@ -1,7 +1,9 @@
-import React from 'react';
-import { Youtube, Loader2, ChevronDown, ChevronUp, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Youtube, Loader2, ChevronDown, ChevronUp, Globe, LogIn } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { LAYOUT, CONTENT_HEIGHTS } from './styles/constants';
+import { LAYOUT, CONTENT_HEIGHTS, AUTH } from './styles/constants';
+import { useAuth } from './AuthContext';
+import UserProfile from './UserProfile';
 
 // API URL should point to your backend
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -44,11 +46,61 @@ interface SummaryResponse {
   transcript: string;
 }
 
-// Add this new component at the top level
-const LoadingProgress = () => {
-  const [progress, setProgress] = React.useState(0);
+// LoginModal component for when a user tries to use features requiring authentication
+const LoginModal = ({ onClose }: { onClose: () => void }) => {
+  const { login } = useAuth();
 
-  React.useEffect(() => {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 mx-4">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <Youtube className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Sign in Required</h2>
+          <p className="text-gray-400">
+            Please sign in to access video summaries and personalized features
+          </p>
+        </div>
+        
+        <div className="space-y-6">
+          <button
+            onClick={login}
+            className="flex items-center justify-center gap-3 w-full py-3 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
+                <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
+                <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
+                <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
+              </g>
+            </svg>
+            Sign in with Google
+          </button>
+          
+          <div className="flex justify-between mt-4">
+            <button
+              onClick={onClose} 
+              className="text-gray-400 hover:text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <p className="text-gray-500 text-sm self-center">
+              By signing in, you agree to our Terms of Service
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Loading Progress component
+const LoadingProgress = () => {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
     // Simulate progress in 5 steps
     const steps = [20, 45, 65, 85, 98];
     let currentStep = 0;
@@ -82,21 +134,80 @@ const LoadingProgress = () => {
 };
 
 function App() {
-  const [url, setUrl] = React.useState('');
-  const [summary, setSummary] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<ErrorResponse | null>(null);
-  const [usedLanguage, setUsedLanguage] = React.useState('');
-  const [showErrorDetails, setShowErrorDetails] = React.useState(false);
-  const [videoInfo, setVideoInfo] = React.useState<VideoInfo | null>(null);
-  const [targetLanguage, setTargetLanguage] = React.useState('');
-  const [showLanguageSelector, setShowLanguageSelector] = React.useState(false);
-  const [translatedSummary, setTranslatedSummary] = React.useState('');
-  const [isTranslating, setIsTranslating] = React.useState(false);
-  const [transcript, setTranscript] = React.useState('');
-  const [chatMessage, setChatMessage] = React.useState('');
-  const [chatHistory, setChatHistory] = React.useState<Array<{role: string, content: string}>>([]);
-  const [isChatting, setIsChatting] = React.useState(false);
+  const { isAuthenticated, isLoading, user, login } = useAuth();
+  
+  // All state hooks in one place to maintain consistent order
+  const [url, setUrl] = useState('');
+  const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ErrorResponse | null>(null);
+  const [usedLanguage, setUsedLanguage] = useState('');
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
+  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [targetLanguage, setTargetLanguage] = useState('');
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+  const [translatedSummary, setTranslatedSummary] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [isChatting, setIsChatting] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // Define all useEffect hooks - always ensure they're in the same order
+  // Scroll observer effect
+  useEffect(() => {
+    // Create a MutationObserver to detect when chat messages are added
+    const chatObserver = new MutationObserver(() => {
+      // Call scroll function whenever DOM changes
+      scrollToLatestMessage();
+    });
+    
+    // Start observing changes to the chat container
+    const observeChat = () => {
+      const chatContainer = document.querySelector('.chat-messages-container');
+      if (chatContainer) {
+        chatObserver.observe(chatContainer, { 
+          childList: true,
+          subtree: true,
+          characterData: true 
+        });
+      } else {
+        // If container not found, try again shortly
+        setTimeout(observeChat, 500);
+      }
+    };
+    
+    // Start observation
+    observeChat();
+    
+    // Cleanup on unmount
+    return () => chatObserver.disconnect();
+  }, []);
+
+  // Chat history effect
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      // Call immediately
+      scrollToLatestMessage();
+      
+      // And again after a short delay to ensure content is rendered
+      setTimeout(scrollToLatestMessage, 100);
+      setTimeout(scrollToLatestMessage, 300);
+    }
+  }, [chatHistory]);
+
+  // If authentication is still loading, show a subtle loading indicator
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <p className="text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const resetApplication = () => {
     setUrl('');
@@ -128,6 +239,42 @@ function App() {
     { code: 'ko', name: 'Korean' },
     { code: 'zh', name: 'Chinese' }
   ];
+
+  // Enhanced scrollToLatestMessage function with more robust element targeting
+  const scrollToLatestMessage = () => {
+    // Wait for DOM to fully update
+    setTimeout(() => {
+      // Try multiple potential scroll containers
+      const scrollContainers = [
+        document.querySelector('.overflow-y-auto'),
+        document.querySelector('.chat-messages-container')?.parentElement,
+        document.querySelector('.flex-1.overflow-y-auto')
+      ];
+      
+      // Try each container
+      for (const container of scrollContainers) {
+        if (container && container instanceof HTMLElement) {
+          // Force scroll to bottom with a delay to ensure content is rendered
+          container.scrollTop = container.scrollHeight + 1000;
+          
+          // For extra reliability, try again with a slightly longer delay
+          setTimeout(() => {
+            container.scrollTop = container.scrollHeight + 1000;
+          }, 50);
+        }
+      }
+    }, 10);
+    
+    // Last resort: try with a longer delay
+    setTimeout(() => {
+      const containers = document.querySelectorAll('.overflow-y-auto');
+      containers.forEach(container => {
+        if (container instanceof HTMLElement) {
+          container.scrollTop = container.scrollHeight + 1000;
+        }
+      });
+    }, 300);
+  };
 
   const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newUrl = e.target.value;
@@ -161,6 +308,13 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If not authenticated, show login modal instead of proceeding
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     console.log('Starting handleSubmit...');
     setLoading(true);
     setError(null);
@@ -185,11 +339,19 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important for cookie-based auth
         body: JSON.stringify({ url }),
       });
 
       console.log('Raw response status:', response.status);
       const data = await response.json();
+      
+      // Check if authentication error
+      if (response.status === 401) {
+        setShowLoginModal(true);
+        throw new Error('Authentication required');
+      }
+      
       console.log('API Response full data:', {
         summary: data.summary,
         language: data.language,
@@ -238,6 +400,12 @@ function App() {
   };
 
   const handleTranslate = async () => {
+    // If not authenticated, show login modal
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     if (!targetLanguage || !summary) return;
     
     setIsTranslating(true);
@@ -247,12 +415,19 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Add for auth
         body: JSON.stringify({
           text: summary,
           targetLanguage,
           sourceLanguage: usedLanguage
         }),
       });
+
+      // Check if authentication error
+      if (response.status === 401) {
+        setShowLoginModal(true);
+        throw new Error('Authentication required');
+      }
 
       const data = await response.json();
       if (!response.ok) {
@@ -286,7 +461,7 @@ function App() {
     };
     // Get base language code (e.g., 'en' from 'en-US')
     const baseLanguage = language.split('-')[0];
-    return titles[baseLanguage] || titles['en'];
+    return titles[baseLanguage as keyof typeof titles] || titles['en'];
   };
 
   // Process formatted text
@@ -319,84 +494,6 @@ function App() {
     );
   };
 
-  // Enhanced scrollToLatestMessage function with more robust element targeting
-  const scrollToLatestMessage = () => {
-    // Wait for DOM to fully update
-    setTimeout(() => {
-      // Try multiple potential scroll containers
-      const scrollContainers = [
-        document.querySelector('.overflow-y-auto'),
-        document.querySelector('.chat-messages-container')?.parentElement,
-        document.querySelector('.flex-1.overflow-y-auto')
-      ];
-      
-      // Try each container
-      for (const container of scrollContainers) {
-        if (container && container instanceof HTMLElement) {
-          // Force scroll to bottom with a delay to ensure content is rendered
-          container.scrollTop = container.scrollHeight + 1000;
-          
-          // For extra reliability, try again with a slightly longer delay
-          setTimeout(() => {
-            container.scrollTop = container.scrollHeight + 1000;
-          }, 50);
-        }
-      }
-    }, 10);
-    
-    // Last resort: try with a longer delay
-    setTimeout(() => {
-      const containers = document.querySelectorAll('.overflow-y-auto');
-      containers.forEach(container => {
-        if (container instanceof HTMLElement) {
-          container.scrollTop = container.scrollHeight + 1000;
-        }
-      });
-    }, 300);
-  };
-
-  // Add a mutation observer to detect DOM changes in the chat
-  React.useEffect(() => {
-    // Create a MutationObserver to detect when chat messages are added
-    const chatObserver = new MutationObserver(() => {
-      // Call scroll function whenever DOM changes
-      scrollToLatestMessage();
-    });
-    
-    // Start observing changes to the chat container
-    const observeChat = () => {
-      const chatContainer = document.querySelector('.chat-messages-container');
-      if (chatContainer) {
-        chatObserver.observe(chatContainer, { 
-          childList: true,
-          subtree: true,
-          characterData: true 
-        });
-      } else {
-        // If container not found, try again shortly
-        setTimeout(observeChat, 500);
-      }
-    };
-    
-    // Start observation
-    observeChat();
-    
-    // Cleanup on unmount
-    return () => chatObserver.disconnect();
-  }, []);
-
-  // Make chat history changes trigger scroll
-  React.useEffect(() => {
-    if (chatHistory.length > 0) {
-      // Call immediately
-      scrollToLatestMessage();
-      
-      // And again after a short delay to ensure content is rendered
-      setTimeout(scrollToLatestMessage, 100);
-      setTimeout(scrollToLatestMessage, 300);
-    }
-  }, [chatHistory]);
-
   // Add a helper function to detect YouTube URLs in chat messages
   const isYouTubeUrl = (message: string) => {
     const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -406,6 +503,13 @@ function App() {
   // Update the handleChat function
   const handleChat = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If not authenticated, show login modal
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     if (!chatMessage.trim()) return;
 
     const userMessage = chatMessage.trim();
@@ -441,6 +545,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Add for auth
         body: JSON.stringify({
           videoId,
           message: userMessage,
@@ -451,6 +556,12 @@ function App() {
           }
         }),
       });
+
+      // Check if authentication error
+      if (response.status === 401) {
+        setShowLoginModal(true);
+        throw new Error('Authentication required');
+      }
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -479,21 +590,34 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4">
       <div className="max-w-7xl mx-auto py-8">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Youtube 
-              className="w-12 h-12 text-red-500 cursor-pointer hover:text-red-600 transition-colors" 
-              onClick={resetApplication}
-            />
-          </div>
-          <div className="inline-block">
-            <h1 
-              className="text-4xl font-bold mb-2 cursor-pointer hover:text-gray-300 transition-colors"
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center">
+            <div 
+              className="flex items-center cursor-pointer hover:text-gray-300 transition-colors"
               onClick={resetApplication}
             >
-              YouTube Video Summarizer
-            </h1>
+              <Youtube className="w-10 h-10 text-red-500 mr-3" />
+              <h1 className="text-3xl font-bold">YouTube Video Summarizer</h1>
+            </div>
           </div>
+          
+          {/* Login button or user profile */}
+          <div>
+            {isAuthenticated ? (
+              <UserProfile />
+            ) : (
+              <button 
+                onClick={() => setShowLoginModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                <LogIn size={18} />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="text-center mb-8">
           <p className="text-gray-400">Get AI-powered summaries of any YouTube video</p>
         </div>
 
@@ -688,7 +812,7 @@ function App() {
                 <div className="flex-1 overflow-hidden flex flex-col">
                   {/* Scrollable container for both summary and chat */}
                   <div className="flex-1 overflow-y-auto pr-4 mb-4">
-                  <SummaryContent content={summary} />
+                    <SummaryContent content={summary} />
                     
                     {/* Chat History */}
                     <div className="mt-6 space-y-4 chat-messages-container" id="chat-messages-container">
@@ -733,10 +857,11 @@ function App() {
             </div>
           </div>
         )}
-
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>This tool uses AI for summarization.</p>
-        </div>
+        
+        {/* Login Modal */}
+        {showLoginModal && (
+          <LoginModal onClose={() => setShowLoginModal(false)} />
+        )}
       </div>
     </div>
   );
