@@ -1,3 +1,43 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes token-loss {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(0, -10px) scale(1.2);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 30px) scale(0.8);
+  }
+}
+
+.animate-token-loss {
+  animation: token-loss 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes token-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+    color: #EF4444;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-token-pulse {
+  animation: token-pulse 0.5s ease-in-out;
+}
