@@ -4,6 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import { LAYOUT, CONTENT_HEIGHTS, AUTH } from './styles/constants';
 import { useAuth } from './AuthContext';
 import UserProfile from './UserProfile';
+import TokenCounter from './TokenCounter';
+import PurchaseTokensModal from './PurchaseTokensModal';
 
 // API URL should point to your backend
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -134,7 +136,7 @@ const LoadingProgress = () => {
 };
 
 function App() {
-  const { isAuthenticated, isLoading, user, login } = useAuth();
+  const { isAuthenticated, isLoading, user, login, tokens, decrementTokens } = useAuth();
   
   // All state hooks in one place to maintain consistent order
   const [url, setUrl] = useState('');
@@ -153,6 +155,7 @@ function App() {
   const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
   const [isChatting, setIsChatting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   
   // Define all useEffect hooks - always ensure they're in the same order
   // Scroll observer effect
@@ -315,6 +318,12 @@ function App() {
       return;
     }
     
+    // Check if user has enough tokens
+    if (tokens <= 0) {
+      setShowPurchaseModal(true);
+      return;
+    }
+    
     console.log('Starting handleSubmit...');
     setLoading(true);
     setError(null);
@@ -380,6 +389,12 @@ function App() {
       setTranscript(data.transcript || 'No transcript available');
       setUsedLanguage(data.language);
       setVideoInfo(data.videoInfo);
+      
+      // Decrement tokens after successful summary
+      const decrementSuccess = await decrementTokens();
+      if (!decrementSuccess) {
+        console.error('Failed to decrement tokens');
+      }
       
       console.log('State updated successfully');
     } catch (err) {
@@ -594,7 +609,10 @@ function App() {
         className="w-full fixed top-0 z-50"
         style={{ height: `${LAYOUT.NAV_HEIGHT}px`, paddingTop: `${LAYOUT.TOP_PADDING}px` }}
       >
-        <div className="max-w-7xl mx-auto px-4 flex justify-end">
+        <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4">
+          {isAuthenticated && (
+            <TokenCounter tokens={tokens} />
+          )}
           {isAuthenticated ? (
             <UserProfile />
           ) : (
@@ -740,13 +758,12 @@ function App() {
                 </div>
               </div>
 
-              {/* Transcript */}
               <div className="p-6 bg-gray-700/50 rounded-lg border border-gray-600 flex flex-col">
                 <h3 className="text-xl font-semibold mb-4">Transcript</h3>
                 <div 
                   className="overflow-y-auto text-sm pr-4" 
                   style={{ 
-                    height: '287px' // Adjusted from 380px to 320px - just a little larger than 300px
+                    height: '287px'
                   }}
                 >
                   {transcript ? (
@@ -880,6 +897,11 @@ function App() {
         {/* Login Modal */}
         {showLoginModal && (
           <LoginModal onClose={() => setShowLoginModal(false)} />
+        )}
+        
+        {/* Purchase Tokens Modal */}
+        {showPurchaseModal && (
+          <PurchaseTokensModal onClose={() => setShowPurchaseModal(false)} />
         )}
       </div>
     </div>

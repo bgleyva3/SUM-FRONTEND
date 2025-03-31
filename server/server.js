@@ -7,6 +7,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const admin = require('firebase-admin');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,22 @@ const youtube = google.youtube({
   version: 'v3',
   auth: process.env.YOUTUBE_API_KEY
 });
+
+// Initialize Firebase Admin and get db reference
+let db;
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    })
+  });
+  db = admin.firestore(); // Define db here
+}
+
+const INITIAL_TOKENS = 15;
+const TOKENS_PER_SUMMARY = 1;
 
 // Configure CORS to only allow requests from your frontend
 app.use(cors({
@@ -51,17 +68,41 @@ passport.use(new GoogleStrategy({
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      // Here you would typically find or create a user in your database
-      // For this example, we'll just use the profile directly
       const user = {
         id: profile.id,
         email: profile.emails[0].value,
         name: profile.displayName,
         picture: profile.photos[0].value
       };
+
+      // Use admin.firestore() instead of db
+      try {
+        const userRef = admin.firestore().collection('users').doc(user.id);
+        const userDoc = await userRef.get();
+        
+        if (!userDoc.exists) {
+          await userRef.set({
+            tokens: INITIAL_TOKENS,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            ...user
+          });
+        } else {
+          const userData = userDoc.data();
+          if (typeof userData.tokens === 'undefined') {
+            await userRef.update({
+              tokens: INITIAL_TOKENS,
+              lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }
+      } catch (firebaseError) {
+        console.error('Firebase operation error:', firebaseError);
+      }
       
       return done(null, user);
     } catch (error) {
+      console.error('Auth error:', error);
       return done(error, null);
     }
   }
@@ -204,17 +245,29 @@ Use these emojis where relevant: 🔍📊📈📉💹⚡🔧🌐💻🔗💰💵
 // Now require authentication for the main features
 app.post('/api/summarize', isAuthenticated, async (req, res) => {
   try {
-    const { url } = req.body;
-    console.log('\n--- Starting transcript fetch process ---');
-    console.log('URL received:', url);
+    // Check user's tokens in Firebase first
+    const userRef = admin.firestore().collection('users').doc(req.user.id);
+    const userDoc = await userRef.get();
     
+    if (!userDoc.exists) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+    if (!userData.tokens || userData.tokens < 1) {
+      return res.status(403).json({ 
+        error: 'Insufficient tokens',
+        tokens: userData.tokens || 0
+      });
+    }
+
+    // Existing URL validation code
+    const { url } = req.body;
     if (!url) {
       return res.status(400).json({ error: 'YouTube URL is required' });
     }
 
     const videoId = extractVideoId(url);
-    console.log('Extracted video ID:', videoId);
-    
     if (!videoId) {
       return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
@@ -298,6 +351,17 @@ app.post('/api/summarize', isAuthenticated, async (req, res) => {
     // Store the user's activity
     console.log(`User ${req.user.name} (${req.user.email}) summarized video: ${videoId}`);
     
+    // After successfully generating the summary, decrease tokens
+    await userRef.update({
+      tokens: admin.firestore.FieldValue.increment(-1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Get updated token count
+    const updatedUserDoc = await userRef.get();
+    const updatedTokens = updatedUserDoc.data().tokens;
+
+    // Return the response with updated token count
     return res.json({ 
       summary: summary,
       transcript: rawTranscript,
@@ -311,7 +375,8 @@ app.post('/api/summarize', isAuthenticated, async (req, res) => {
         viewCount: videoInfo.viewCount,
         likeCount: videoInfo.likeCount,
         channelInfo: videoInfo.channelInfo
-      } : null
+      } : null,
+      tokens: updatedTokens // Add tokens to response
     });
   } catch (error) {
     console.error('Error:', error);
