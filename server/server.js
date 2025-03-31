@@ -139,9 +139,23 @@ app.get('/auth/google/callback',
   }
 );
 
-app.get('/auth/user', (req, res) => {
+app.get('/auth/user', async (req, res) => {
   if (req.isAuthenticated()) {
-    res.json({ isAuthenticated: true, user: req.user });
+    try {
+      const userRef = admin.firestore().collection('users').doc(req.user.id);
+      const userDoc = await userRef.get();
+      const userData = userDoc.data();
+      console.log('Auth check - user tokens:', userData.tokens);
+      
+      res.json({ 
+        isAuthenticated: true, 
+        user: req.user,
+        tokens: userData.tokens 
+      });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      res.json({ isAuthenticated: true, user: req.user });
+    }
   } else {
     res.json({ isAuthenticated: false });
   }
@@ -249,12 +263,16 @@ app.post('/api/summarize', isAuthenticated, async (req, res) => {
     const userRef = admin.firestore().collection('users').doc(req.user.id);
     const userDoc = await userRef.get();
     
+    console.log('Initial user tokens:', userDoc.data().tokens);
+
     if (!userDoc.exists) {
+      console.log('User not found in database');
       return res.status(400).json({ error: 'User not found' });
     }
 
     const userData = userDoc.data();
     if (!userData.tokens || userData.tokens < 1) {
+      console.log('Insufficient tokens:', userData.tokens);
       return res.status(403).json({ 
         error: 'Insufficient tokens',
         tokens: userData.tokens || 0
@@ -360,8 +378,8 @@ app.post('/api/summarize', isAuthenticated, async (req, res) => {
     // Get updated token count
     const updatedUserDoc = await userRef.get();
     const updatedTokens = updatedUserDoc.data().tokens;
+    console.log('Updated tokens after summary:', updatedTokens);
 
-    // Return the response with updated token count
     return res.json({ 
       summary: summary,
       transcript: rawTranscript,
@@ -376,18 +394,11 @@ app.post('/api/summarize', isAuthenticated, async (req, res) => {
         likeCount: videoInfo.likeCount,
         channelInfo: videoInfo.channelInfo
       } : null,
-      tokens: updatedTokens // Add tokens to response
+      tokens: updatedTokens
     });
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ 
-      error: error.message || 'An error occurred',
-      details: {
-        errorType: error.name,
-        errorMessage: error.message,
-        errorStack: error.stack
-      }
-    });
+    console.error('Error in /api/summarize:', error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

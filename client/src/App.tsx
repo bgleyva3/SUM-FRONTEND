@@ -136,7 +136,7 @@ const LoadingProgress = () => {
 };
 
 function App() {
-  const { isAuthenticated, isLoading, user, login, tokens, decrementTokens } = useAuth();
+  const { isAuthenticated, isLoading, user, login, tokens, decrementTokens, updateTokens } = useAuth();
   
   // All state hooks in one place to maintain consistent order
   const [url, setUrl] = useState('');
@@ -312,63 +312,36 @@ function App() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If not authenticated, show login modal instead of proceeding
     if (!isAuthenticated) {
       setShowLoginModal(true);
       return;
     }
     
-    // Check if user has enough tokens
     if (tokens <= 0) {
       setShowPurchaseModal(true);
       return;
     }
     
-    console.log('Starting handleSubmit...');
     setLoading(true);
     setError(null);
-    setSummary('');
-    setUsedLanguage('');
-    setVideoInfo(null);
-    setTranslatedSummary('');
-    setTargetLanguage('');
-    setTranscript('');
 
     try {
-      const videoId = extractVideoId(url);
-      console.log('Extracted videoId:', videoId);
-      
-      if (!videoId) {
-        throw new Error('Invalid YouTube URL');
-      }
-
-      console.log('Fetching summary and transcript for video:', videoId);
       const response = await fetch(`${API_URL}/api/summarize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important for cookie-based auth
+        credentials: 'include',
         body: JSON.stringify({ url }),
       });
 
-      console.log('Raw response status:', response.status);
       const data = await response.json();
+      console.log('Summary response:', data);
       
-      // Check if authentication error
       if (response.status === 401) {
         setShowLoginModal(true);
         throw new Error('Authentication required');
       }
-      
-      console.log('API Response full data:', {
-        summary: data.summary,
-        language: data.language,
-        videoInfo: data.videoInfo,
-        transcript: data.transcript ? `${data.transcript.length} chars` : 'null',
-        hasTranscript: Boolean(data.transcript),
-        responseKeys: Object.keys(data)
-      });
       
       if (!response.ok) {
         console.error('Response not OK:', data);
@@ -376,33 +349,19 @@ function App() {
         throw new Error(data.error || 'Failed to summarize video');
       }
 
-      console.log('Setting state values:');
-      console.log('- Summary length:', data.summary?.length || 0);
-      console.log('- Language:', data.language);
-      console.log('- Video info:', data.videoInfo?.title);
-      console.log('- Transcript:', data.transcript ? `${data.transcript.length} chars` : 'null');
-      console.log('- Full Summary Text:', data.summary);
-      
-      console.log('Raw transcript data (first 500 chars):', data.transcript.substring(0, 500));
-      
       setSummary(data.summary);
       setTranscript(data.transcript || 'No transcript available');
       setUsedLanguage(data.language);
       setVideoInfo(data.videoInfo);
       
-      // Decrement tokens after successful summary
-      const decrementSuccess = await decrementTokens();
-      if (!decrementSuccess) {
-        console.error('Failed to decrement tokens');
+      // Update tokens with the value from the response
+      if (typeof data.tokens === 'number') {
+        console.log('Updating tokens from response:', data.tokens);
+        updateTokens(data.tokens);
       }
-      
-      console.log('State updated successfully');
+
     } catch (err) {
-      console.error('Error details:', {
-        error: err,
-        message: err instanceof Error ? err.message : 'Unknown error',
-        stack: err instanceof Error ? err.stack : null
-      });
+      console.error('Error in handleSubmit:', err);
       if (!error) {
         setError({
           error: err instanceof Error ? err.message : 'An error occurred',
@@ -410,7 +369,6 @@ function App() {
       }
     } finally {
       setLoading(false);
-      console.log('HandleSubmit completed');
     }
   };
 
