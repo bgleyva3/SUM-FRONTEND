@@ -564,10 +564,14 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       {/* Navbar */}
       <div 
-        className="w-full fixed top-0 z-50"
-        style={{ height: `${LAYOUT.NAV_HEIGHT}px`, paddingTop: `${LAYOUT.TOP_PADDING}px` }}
+        className="w-full fixed top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800/50"
+        style={{ 
+          height: `${LAYOUT.NAV_HEIGHT}px`, 
+          paddingTop: `${LAYOUT.TOP_PADDING}px`,
+          paddingBottom: `${LAYOUT.TOP_PADDING}px`
+        }}
       >
-        <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4 h-full">
           {isAuthenticated && (
             <TokenCounter tokens={tokens} />
           )}

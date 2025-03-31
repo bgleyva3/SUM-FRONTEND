@@ -1,16 +1,16 @@
 export const LAYOUT = {
   // Main container
   CONTAINER_HEIGHT: 650,
-  TOP_PADDING: 24, // Keep this for user dropdown spacing
-  NAV_HEIGHT: 50,
+  TOP_PADDING: 14, // Reduced from 24 to 16
+  NAV_HEIGHT: 68, // Increased from 40 to accommodate equal padding (40 + 14 + 14)
   
   // Center content positioning
-  CENTER_CONTENT_OFFSET: -100, // Keep this for home/preview/loading
-  SUMMARY_CONTENT_OFFSET: -80, // Changed from -20 to -80 to move summary content up
+  CENTER_CONTENT_OFFSET: -80, // Changed from -100 to -80 to move content up
+  SUMMARY_CONTENT_OFFSET: -60, // Changed from -80 to -60
   
   // Content spacing
-  CONTENT_TOP_MARGIN: 80, // Increased to ensure icon stays in viewport
-  TITLE_SECTION_HEIGHT: 180, // Added to account for total height of title + subtitle + input
+  CONTENT_TOP_MARGIN: 60, // Reduced from 80 to 60
+  TITLE_SECTION_HEIGHT: 160, // Reduced from 180 to 160
   
   // Preview thumbnail size
   THUMBNAIL_HEIGHT: 120,
