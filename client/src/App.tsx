@@ -588,40 +588,60 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4">
-      <div className="max-w-7xl mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center">
-            <div 
-              className="flex items-center cursor-pointer hover:text-gray-300 transition-colors"
-              onClick={resetApplication}
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+      {/* Navbar */}
+      <div 
+        className="w-full fixed top-0 z-50"
+        style={{ height: `${LAYOUT.NAV_HEIGHT}px`, paddingTop: `${LAYOUT.TOP_PADDING}px` }}
+      >
+        <div className="max-w-7xl mx-auto px-4 flex justify-end">
+          {isAuthenticated ? (
+            <UserProfile />
+          ) : (
+            <button 
+              onClick={() => setShowLoginModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
             >
-              <Youtube className="w-10 h-10 text-red-500 mr-3" />
-              <h1 className="text-3xl font-bold">YouTube Video Summarizer</h1>
-            </div>
-          </div>
-          
-          {/* Login button or user profile */}
-          <div>
-            {isAuthenticated ? (
-              <UserProfile />
-            ) : (
-              <button 
-                onClick={() => setShowLoginModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                <LogIn size={18} />
-                <span>Sign In</span>
-              </button>
-            )}
-          </div>
+              <LogIn size={18} />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
+      </div>
 
-        <div className="text-center mb-8">
+      {/* Main content */}
+      <div 
+        className="max-w-7xl mx-auto px-4 flex flex-col items-center"
+        style={{ 
+          minHeight: '100vh',
+          paddingTop: `${LAYOUT.NAV_HEIGHT}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transform: `translateY(${summary ? LAYOUT.SUMMARY_CONTENT_OFFSET : LAYOUT.CENTER_CONTENT_OFFSET}px)`
+        }}
+      >
+        {/* Title section - Update padding and margins */}
+        <div 
+          className="flex flex-col items-center cursor-pointer mt-[80px] p-4"
+          onClick={resetApplication}
+          style={{
+            marginTop: `${LAYOUT.CONTENT_TOP_MARGIN}px`,
+            padding: `${LAYOUT.TITLE_SECTION_PADDING}px`,
+          }}
+        >
+          <Youtube 
+            className="text-red-500 mb-1 hover:text-red-600 transition-colors"
+            size={LAYOUT.TITLE_ICON_SIZE}
+          />
+          <h1 className="text-3xl font-bold mb-5 hover:text-gray-300 transition-colors">
+            YouTube Video Summarizer
+          </h1>
           <p className="text-gray-400">Get AI-powered summaries of any YouTube video</p>
         </div>
 
-        <div className="max-w-2xl mx-auto flex gap-2 mb-8">
+        {/* URL input section */}
+        <div className="w-full max-w-2xl flex gap-2 mb-8">
           <input
             type="text"
             value={url}
@@ -677,15 +697,16 @@ function App() {
 
         {videoInfo && !summary && !loading && (
           <div className="flex justify-center items-center">
-            <div className="p-6 bg-gray-700/50 rounded-lg border border-gray-600 max-w-md">
-              <div className="flex flex-col gap-4">
+            <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600 max-w-md">
+              <div className="flex flex-col gap-3">
                 <img
                   src={videoInfo.thumbnail}
                   alt={videoInfo.title}
-                  className="w-[240px] h-[180px] rounded-lg shadow-lg mx-auto object-cover"
+                  className="w-[160px] h-[120px] rounded-lg shadow-lg mx-auto object-cover"
+                  style={{ objectFit: 'cover' }}
                 />
                 <div className="overflow-hidden text-center">
-                  <h3 className="text-xl font-semibold mb-2 line-clamp-2">{videoInfo.title}</h3>
+                  <h3 className="text-lg font-semibold mb-1 line-clamp-2">{videoInfo.title}</h3>
                   <p className="text-gray-400 text-sm truncate">Channel: {videoInfo.channelTitle}</p>
                 </div>
               </div>
@@ -704,32 +725,30 @@ function App() {
             {/* Left Column - Video Info and Transcript */}
             <div className="w-[40%] flex flex-col gap-6">
               {/* Video Info */}
-              <div 
-                className="p-6 bg-gray-700/50 rounded-lg border border-gray-600"
-                ref={(el) => {
-                  if (el) {
-                    const height = el.offsetHeight;
-                    document.documentElement.style.setProperty('--video-info-height', `${height}px`);
-                  }
-                }}
-              >
-                <div className="flex flex-col gap-4">
+              <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                <div className="flex flex-col gap-3">
                   <img
                     src={videoInfo.thumbnail}
                     alt={videoInfo.title}
-                    className="w-[240px] h-[180px] rounded-lg shadow-lg mx-auto object-cover"
+                    className="w-[160px] h-[120px] rounded-lg shadow-lg mx-auto object-cover"
+                    style={{ objectFit: 'cover' }}
                   />
                   <div className="overflow-hidden">
-                    <h3 className="text-xl font-semibold mb-2 line-clamp-2">{videoInfo.title}</h3>
+                    <h3 className="text-lg font-semibold mb-1 line-clamp-2">{videoInfo.title}</h3>
                     <p className="text-gray-400 text-sm truncate">Channel: {videoInfo.channelTitle}</p>
                   </div>
                 </div>
               </div>
 
               {/* Transcript */}
-              <div className="p-6 bg-gray-700/50 rounded-lg border border-gray-600">
+              <div className="p-6 bg-gray-700/50 rounded-lg border border-gray-600 flex flex-col">
                 <h3 className="text-xl font-semibold mb-4">Transcript</h3>
-                <div className="overflow-y-auto text-sm pr-4" style={{ height: CONTENT_HEIGHTS.TRANSCRIPT }}>
+                <div 
+                  className="overflow-y-auto text-sm pr-4" 
+                  style={{ 
+                    height: '287px' // Adjusted from 380px to 320px - just a little larger than 300px
+                  }}
+                >
                   {transcript ? (
                     <pre className="text-gray-300 whitespace-pre-wrap font-sans">
                       {transcript.split('\n').map((line, index) => {

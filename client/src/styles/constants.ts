@@ -1,30 +1,50 @@
 export const LAYOUT = {
   // Main container
   CONTAINER_HEIGHT: 650,
+  TOP_PADDING: 24, // Keep this for user dropdown spacing
+  NAV_HEIGHT: 50,
   
-  // Left column components
-  THUMBNAIL_HEIGHT: 180,
-  TITLE_SECTION_HEIGHT: 80, // For title and channel name
-  VIDEO_INFO_TOTAL_HEIGHT: 260, // thumbnail + title section
+  // Center content positioning
+  CENTER_CONTENT_OFFSET: -100, // Keep this for home/preview/loading
+  SUMMARY_CONTENT_OFFSET: -80, // Changed from -20 to -80 to move summary content up
+  
+  // Content spacing
+  CONTENT_TOP_MARGIN: 80, // Increased to ensure icon stays in viewport
+  TITLE_SECTION_HEIGHT: 180, // Added to account for total height of title + subtitle + input
+  
+  // Preview thumbnail size
+  THUMBNAIL_HEIGHT: 120,
+  THUMBNAIL_WIDTH: 160,
+  VIDEO_INFO_TOTAL_HEIGHT: 195,
   
   // Spacing and common values
-  GAP: 24, // equivalent to gap-6
-  PADDING: 24, // equivalent to p-6
-  HEADER_HEIGHT: 40, // equivalent to 2.5rem for section headers
+  GAP: 24,
+  PADDING: 24,
+  HEADER_HEIGHT: 40,
+  
+  // Title section
+  TITLE_ICON_SIZE: 48,
+  TITLE_SPACING: 8,
+  TITLE_SECTION_PADDING: 16,
+  ICON_BOTTOM_MARGIN: 0,
   
   // Right column components
   SUMMARY_HEADER_HEIGHT: 40,
   TRANSLATE_BUTTON_HEIGHT: 40,
   
   // Auth-related components
-  AUTH_HEADER_HEIGHT: 64, // Height for the authentication header
-  USER_PROFILE_WIDTH: 240, // Width for the user profile dropdown
+  AUTH_HEADER_HEIGHT: 64,
+  USER_PROFILE_WIDTH: 240,
+  
+  // Transcript max height
+  TRANSCRIPT_MAX_HEIGHT: 400,
 } as const;
 
 // Calculated heights
 export const CONTENT_HEIGHTS = {
-  // For transcript: remaining space after video info
-  TRANSCRIPT: `calc(${LAYOUT.CONTAINER_HEIGHT}px - var(--video-info-height) - ${LAYOUT.GAP}px - ${LAYOUT.HEADER_HEIGHT}px - ${LAYOUT.PADDING * 2}px)`,
+  // For transcript: calculate height to match summary component
+  // Container height - video info height - gaps - padding - header
+  TRANSCRIPT: `calc(${LAYOUT.CONTAINER_HEIGHT}px - ${LAYOUT.VIDEO_INFO_TOTAL_HEIGHT}px - ${LAYOUT.GAP}px - ${LAYOUT.PADDING * 2}px - ${LAYOUT.HEADER_HEIGHT}px)`,
   
   // For summary: container - header - translate button - padding
   SUMMARY: `calc(${LAYOUT.CONTAINER_HEIGHT}px - ${LAYOUT.SUMMARY_HEADER_HEIGHT}px - ${LAYOUT.PADDING * 2}px)`,
