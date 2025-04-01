@@ -1,16 +1,16 @@
 export const LAYOUT = {
   // Main container
   CONTAINER_HEIGHT: 650,
-  TOP_PADDING: 14, // Reduced from 24 to 16
-  NAV_HEIGHT: 68, // Increased from 40 to accommodate equal padding (40 + 14 + 14)
+  TOP_PADDING: 5,
+  NAV_HEIGHT: 60,
   
   // Center content positioning
-  CENTER_CONTENT_OFFSET: -60, // Changed from -80 to -60
-  SUMMARY_CONTENT_OFFSET: -40, // Changed from -60 to -40
+  CENTER_CONTENT_OFFSET: -90,
+  SUMMARY_CONTENT_OFFSET: -40,
   
   // Content spacing
-  CONTENT_TOP_MARGIN: 40, // Reduced from 60 to 40
-  TITLE_SECTION_HEIGHT: 160, // Reduced from 180 to 160
+  CONTENT_TOP_MARGIN: 10,
+  TITLE_SECTION_HEIGHT: 120,
   
   // Preview thumbnail size
   THUMBNAIL_HEIGHT: 120,

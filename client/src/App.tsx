@@ -564,11 +564,12 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
       {/* Navbar */}
       <div 
-        className="w-full fixed top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800/50"
+        className="w-full fixed top-0 z-50 border-b border-gray-800/50"
         style={{ 
           height: `${LAYOUT.NAV_HEIGHT}px`, 
           paddingTop: `${LAYOUT.TOP_PADDING}px`,
-          paddingBottom: `${LAYOUT.TOP_PADDING}px`
+          paddingBottom: `${LAYOUT.TOP_PADDING}px`,
+          background: 'rgb(17, 24, 39)', // Keeping the matching background color
         }}
       >
         <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4 h-full">
@@ -589,15 +590,17 @@ function App() {
         </div>
       </div>
 
-      {/* Main content - Adjusted spacing for summary view */}
+      {/* Main content */}
       <div 
         className="flex-1 max-w-7xl mx-auto px-4 flex flex-col items-center"
         style={{ 
-          paddingTop: `${LAYOUT.NAV_HEIGHT + (summary ? 0 : 20)}px`, // Reduce padding when showing summary
+          marginTop: `${LAYOUT.NAV_HEIGHT + 5}px`, // Reduced from 20px to 5px
+          paddingTop: '10px', // Reduced from 15px to 10px
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transform: `translateY(${summary ? LAYOUT.SUMMARY_CONTENT_OFFSET : LAYOUT.CENTER_CONTENT_OFFSET}px)`
+          transform: videoInfo && !summary && !loading ? 'translateY(-30px)' : `translateY(${summary ? LAYOUT.SUMMARY_CONTENT_OFFSET : LAYOUT.CENTER_CONTENT_OFFSET}px)`,
+          // Added small negative transform for video preview state
         }}
       >
         {/* Title section - Conditional margin based on content state */}
@@ -674,7 +677,7 @@ function App() {
           </div>
         )}
 
-        {/* Video preview - Added bottom margin */}
+        {/* Video preview */}
         {videoInfo && !summary && !loading && (
           <div className="flex justify-center items-center mt-2 mb-8">
             <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600 max-w-md">
