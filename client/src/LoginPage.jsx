@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from './AuthContext';
 import { Youtube } from 'lucide-react';
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const { login } = useAuth();
 
   return (

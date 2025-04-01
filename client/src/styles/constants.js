@@ -38,12 +38,11 @@ export const LAYOUT = {
   
   // Transcript max height
   TRANSCRIPT_MAX_HEIGHT: 400,
-} as const;
+};
 
 // Calculated heights
 export const CONTENT_HEIGHTS = {
   // For transcript: calculate height to match summary component
-  // Container height - video info height - gaps - padding - header
   TRANSCRIPT: `calc(${LAYOUT.CONTAINER_HEIGHT}px - ${LAYOUT.VIDEO_INFO_TOTAL_HEIGHT}px - ${LAYOUT.GAP}px - ${LAYOUT.PADDING * 2}px - ${LAYOUT.HEADER_HEIGHT}px)`,
   
   // For summary: container - header - translate button - padding
@@ -54,11 +53,11 @@ export const CONTENT_HEIGHTS = {
   
   // For login container
   LOGIN_CONTAINER: '480px',
-} as const;
+};
 
 // Auth-related constants
 export const AUTH = {
   TRANSITION_DURATION: 300, // ms for animations
   USER_MENU_WIDTH: 240, // Width of user dropdown menu
   PROFILE_PICTURE_SIZE: 32, // Size of profile picture
-} as const;
+};

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { LogOut, User, ChevronDown, ChevronUp } from 'lucide-react';
 
-const UserProfile: React.FC = () => {
+const UserProfile = () => {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

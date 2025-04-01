@@ -1,11 +1,7 @@
 import React, { useEffect } from 'react';
 import { Coins, X, CreditCard, AlertTriangle } from 'lucide-react';
 
-interface PurchaseTokensModalProps {
-  onClose: () => void;
-}
-
-const PurchaseTokensModal: React.FC<PurchaseTokensModalProps> = ({ onClose }) => {
+const PurchaseTokensModal = ({ onClose }) => {
   // Prevent scrolling when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';

@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Coins } from 'lucide-react';
 
-interface TokenCounterProps {
-  tokens: number;
-}
-
-const TokenCounter: React.FC<TokenCounterProps> = ({ tokens }) => {
+const TokenCounter = ({ tokens }) => {
   const [prevTokens, setPrevTokens] = useState(tokens);
   const [showAnimation, setShowAnimation] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);

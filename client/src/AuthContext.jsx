@@ -30,31 +30,7 @@ const db = getFirestore(app);
 // Constants
 const INITIAL_TOKENS = 15;
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  picture: string;
-}
-
-interface TokenInfo {
-  tokens: number;
-  lastUpdated: Timestamp;
-  createdAt: Timestamp;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  tokens: number;
-  decrementTokens: () => Promise<boolean>;
-  updateTokens: (newTokens: number) => void;
-  login: () => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType>({
+const AuthContext = createContext({
   user: null,
   isAuthenticated: false,
   isLoading: true,
@@ -67,8 +43,8 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [tokens, setTokens] = useState(0);
@@ -110,7 +86,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     checkAuthStatus();
   }, []);
 
-  const fetchUserTokens = async (userId: string) => {
+  const fetchUserTokens = async (userId) => {
     try {
       const userRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userRef);
@@ -125,25 +101,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  const updateTokens = (newTokens: number) => {
+  const updateTokens = (newTokens) => {
     console.log('Updating tokens to:', newTokens);
     setTokens(newTokens);
   };
 
-  // Modify the existing decrementTokens function
-  const decrementTokens = async (): Promise<boolean> => {
+  const decrementTokens = async () => {
     if (!user || tokens <= 0) return false;
     
     try {
       const userRef = doc(db, 'users', user.id);
       
-      // Decrement tokens in Firestore
       await updateDoc(userRef, {
         tokens: tokens - 1,
         lastUpdated: serverTimestamp()
       });
       
-      // Update local state
       setTokens(prev => prev - 1);
       return true;
     } catch (error) {

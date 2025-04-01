@@ -10,46 +10,18 @@ import PurchaseTokensModal from './PurchaseTokensModal';
 // API URL should point to your backend
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function extractVideoId(url: string) {
+function extractVideoId(url) {
   const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const match = url.match(regex);
   return match ? match[1] : null;
 }
 
-function getYouTubeThumbnail(videoId: string) {
+function getYouTubeThumbnail(videoId) {
   return `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 }
 
-interface ErrorDetails {
-  videoId?: string;
-  errorType?: string;
-  errorMessage?: string;
-  errorStack?: string;
-  transcriptEmpty?: boolean;
-  transcriptLength?: number;
-}
-
-interface ErrorResponse {
-  error: string;
-  details?: ErrorDetails;
-}
-
-interface VideoInfo {
-  title: string;
-  description: string;
-  thumbnail: string;
-  channelTitle: string;
-}
-
-interface SummaryResponse {
-  summary: string;
-  language: string;
-  videoInfo: VideoInfo | null;
-  transcript: string;
-}
-
 // LoginModal component for when a user tries to use features requiring authentication
-const LoginModal = ({ onClose }: { onClose: () => void }) => {
+const LoginModal = ({ onClose }) => {
   const { login } = useAuth();
 
   return (
@@ -142,17 +114,17 @@ function App() {
   const [url, setUrl] = useState('');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ErrorResponse | null>(null);
+  const [error, setError] = useState(null);
   const [usedLanguage, setUsedLanguage] = useState('');
   const [showErrorDetails, setShowErrorDetails] = useState(false);
-  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+  const [videoInfo, setVideoInfo] = useState(null);
   const [targetLanguage, setTargetLanguage] = useState('');
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [translatedSummary, setTranslatedSummary] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [chatMessage, setChatMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [chatHistory, setChatHistory] = useState([]);
   const [isChatting, setIsChatting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -279,14 +251,12 @@ function App() {
     }, 300);
   };
 
-  const handleUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUrlChange = async (e) => {
     const newUrl = e.target.value;
     setUrl(newUrl);
     
-    // Extract video ID and create basic preview
     const videoId = extractVideoId(newUrl);
     if (videoId) {
-      // Set basic video info even without API
       setVideoInfo({
         title: 'Loading video details...',
         description: '',
@@ -294,7 +264,6 @@ function App() {
         channelTitle: ''
       });
 
-      // Try to fetch additional info if API is available
       try {
         const response = await fetch(`${API_URL}/api/video-info?videoId=${videoId}`);
         const data = await response.json();
@@ -309,7 +278,7 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -345,7 +314,7 @@ function App() {
       
       if (!response.ok) {
         console.error('Response not OK:', data);
-        setError(data as ErrorResponse);
+        setError(data);
         throw new Error(data.error || 'Failed to summarize video');
       }
 
@@ -419,7 +388,7 @@ function App() {
   };
 
   // Add this function at the top of the component or with other utility functions
-  const getTitle = (language: string) => {
+  const getTitle = (language) => {
     const titles = {
       'en': 'Summary',
       'es': 'Resumen',
@@ -434,11 +403,11 @@ function App() {
     };
     // Get base language code (e.g., 'en' from 'en-US')
     const baseLanguage = language.split('-')[0];
-    return titles[baseLanguage as keyof typeof titles] || titles['en'];
+    return titles[baseLanguage] || titles['en'];
   };
 
   // Process formatted text
-  const processFormattedText = (text: string) => {
+  const processFormattedText = (text) => {
     return text
       .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -448,7 +417,7 @@ function App() {
   };
 
   // Update SummaryContent to use the shared function
-  const SummaryContent = ({ content }: { content: string }) => {
+  const SummaryContent = ({ content }) => {
     if (!content) return null;
     
     return (
@@ -468,13 +437,13 @@ function App() {
   };
 
   // Add a helper function to detect YouTube URLs in chat messages
-  const isYouTubeUrl = (message: string) => {
+  const isYouTubeUrl = (message) => {
     const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
     return youtubeRegex.test(message);
   };
 
   // Update the handleChat function
-  const handleChat = async (e: React.FormEvent) => {
+  const handleChat = async (e) => {
     e.preventDefault();
 
     // If not authenticated, show login modal
