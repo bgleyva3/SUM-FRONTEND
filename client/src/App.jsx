@@ -533,12 +533,11 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
       {/* Navbar */}
       <div 
-        className="w-full z-50 border-b border-gray-800/50"
+        className="w-full border-gray-800/50 from-gray-900 to-gray-800"
         style={{ 
           height: `${LAYOUT.NAV_HEIGHT}px`, 
           paddingTop: `${LAYOUT.TOP_PADDING}px`,
-          paddingBottom: `${LAYOUT.TOP_PADDING}px`,
-          background: 'rgb(17, 24, 39)', // Keeping the matching background color
+          paddingBottom: `${LAYOUT.TOP_PADDING}px`, // Keeping the matching background color
         }}
       >
         <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4 h-full">
@@ -563,23 +562,29 @@ function App() {
       <div 
         className="flex-1 max-w-7xl mx-auto px-4 flex flex-col items-center"
         style={{ 
-          marginTop: `${LAYOUT.NAV_HEIGHT + 5}px`, // Reduced from 20px to 5px
-          paddingTop: '10px', // Reduced from 15px to 10px
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          transform: videoInfo && !summary && !loading ? 'translateY(-30px)' : `translateY(${summary ? LAYOUT.SUMMARY_CONTENT_OFFSET : LAYOUT.CENTER_CONTENT_OFFSET}px)`,
           // Added small negative transform for video preview state
         }}
       >
+
+        {/* Login Modal */}
+        {showLoginModal && (
+          <LoginModal onClose={() => setShowLoginModal(false)} />
+        )}
+        
+        {/* Purchase Tokens Modal */}
+        {showPurchaseModal && (
+          <>
+            <div className="fixed inset-0 bg-black/30" onClick={() => setShowPurchaseModal(false)} />
+            <PurchaseTokensModal onClose={() => setShowPurchaseModal(false)} />
+          </>
+        )}
         {/* Title section - Conditional margin based on content state */}
         <div 
           className="flex flex-col items-center cursor-pointer p-4"
           onClick={resetApplication}
-          style={{
-            marginTop: videoInfo && !summary && !loading ? '40px' : `${LAYOUT.CONTENT_TOP_MARGIN}px`,
-            padding: `${LAYOUT.TITLE_SECTION_PADDING}px`,
-          }}
         >
           <Youtube 
             className="text-red-500 mb-1 hover:text-red-600 transition-colors"
@@ -612,6 +617,13 @@ function App() {
             )}
           </button>
         </div>
+
+        {/* Conditional padding container - only shown in initial state */}
+        {!loading && !videoInfo && !summary && (
+          <div className="pb-40">
+            {/* This empty div adds bottom padding only in the initial state */}
+          </div>
+        )}
 
         {error && (
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 mb-4">
@@ -826,16 +838,6 @@ function App() {
               </div>
             </div>
           </div>
-        )}
-        
-        {/* Login Modal */}
-        {showLoginModal && (
-          <LoginModal onClose={() => setShowLoginModal(false)} />
-        )}
-        
-        {/* Purchase Tokens Modal */}
-        {showPurchaseModal && (
-          <PurchaseTokensModal onClose={() => setShowPurchaseModal(false)} />
         )}
       </div>
     </div>

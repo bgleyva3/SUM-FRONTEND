@@ -2,6 +2,7 @@ export const LAYOUT = {
   // Navbar
   NAV_HEIGHT: 64,
   TOP_PADDING: 8,
+  //NAV_BACKGROUND: 'rgb(17, 24, 39)',
   
   // Main container
   CONTAINER_HEIGHT: 650,

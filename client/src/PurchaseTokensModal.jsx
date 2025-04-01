@@ -12,15 +12,10 @@ const PurchaseTokensModal = ({ onClose }) => {
 
   return (
     <>
-      {/* Use a portal-style approach with direct overlay covering the entire viewport */}
-      <div 
-        className="fixed inset-0 bg-black/70 z-50"
-        onClick={onClose}
-      />
       
       {/* Modal content - centered with flex and explicit styling */}
-      <div 
-        className="fixed left-0 right-0 top-0 bottom-0 flex items-center justify-center z-50 pointer-events-none p-4"
+      <div
+        className="fixed flex items-center justify-center z-50 pointer-events-none p-4"
       >
         <div 
           className="bg-gray-800 rounded-lg overflow-hidden shadow-xl pointer-events-auto w-full max-w-md flex flex-col"
