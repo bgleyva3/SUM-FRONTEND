@@ -41,3 +41,13 @@
 .animate-token-pulse {
   animation: token-pulse 0.5s ease-in-out;
 }
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-open {
+  overflow: hidden;
+}

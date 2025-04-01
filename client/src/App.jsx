@@ -533,7 +533,7 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
       {/* Navbar */}
       <div 
-        className="w-full fixed top-0 z-50 border-b border-gray-800/50"
+        className="w-full z-50 border-b border-gray-800/50"
         style={{ 
           height: `${LAYOUT.NAV_HEIGHT}px`, 
           paddingTop: `${LAYOUT.TOP_PADDING}px`,
