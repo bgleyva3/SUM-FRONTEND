@@ -561,7 +561,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col">
       {/* Navbar */}
       <div 
         className="w-full fixed top-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800/50"
@@ -589,24 +589,23 @@ function App() {
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content - Adjusted spacing for summary view */}
       <div 
-        className="max-w-7xl mx-auto px-4 flex flex-col items-center"
+        className="flex-1 max-w-7xl mx-auto px-4 flex flex-col items-center"
         style={{ 
-          minHeight: '100vh',
-          paddingTop: `${LAYOUT.NAV_HEIGHT}px`,
+          paddingTop: `${LAYOUT.NAV_HEIGHT + (summary ? 0 : 20)}px`, // Reduce padding when showing summary
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transform: `translateY(${summary ? LAYOUT.SUMMARY_CONTENT_OFFSET : LAYOUT.CENTER_CONTENT_OFFSET}px)`
         }}
       >
-        {/* Title section - Update padding and margins */}
+        {/* Title section - Conditional margin based on content state */}
         <div 
-          className="flex flex-col items-center cursor-pointer mt-[80px] p-4"
+          className="flex flex-col items-center cursor-pointer p-4"
           onClick={resetApplication}
           style={{
-            marginTop: `${LAYOUT.CONTENT_TOP_MARGIN}px`,
+            marginTop: videoInfo && !summary && !loading ? '40px' : `${LAYOUT.CONTENT_TOP_MARGIN}px`,
             padding: `${LAYOUT.TITLE_SECTION_PADDING}px`,
           }}
         >
@@ -620,8 +619,8 @@ function App() {
           <p className="text-gray-400">Get AI-powered summaries of any YouTube video</p>
         </div>
 
-        {/* URL input section */}
-        <div className="w-full max-w-2xl flex gap-2 mb-8">
+        {/* URL input section - Adjusted margin */}
+        <div className="w-full max-w-2xl flex gap-2 mb-6">
           <input
             type="text"
             value={url}
@@ -675,8 +674,9 @@ function App() {
           </div>
         )}
 
+        {/* Video preview - Added bottom margin */}
         {videoInfo && !summary && !loading && (
-          <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center mt-2 mb-8">
             <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600 max-w-md">
               <div className="flex flex-col gap-3">
                 <img

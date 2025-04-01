@@ -5,11 +5,11 @@ export const LAYOUT = {
   NAV_HEIGHT: 68, // Increased from 40 to accommodate equal padding (40 + 14 + 14)
   
   // Center content positioning
-  CENTER_CONTENT_OFFSET: -80, // Changed from -100 to -80 to move content up
-  SUMMARY_CONTENT_OFFSET: -60, // Changed from -80 to -60
+  CENTER_CONTENT_OFFSET: -60, // Changed from -80 to -60
+  SUMMARY_CONTENT_OFFSET: -40, // Changed from -60 to -40
   
   // Content spacing
-  CONTENT_TOP_MARGIN: 60, // Reduced from 80 to 60
+  CONTENT_TOP_MARGIN: 40, // Reduced from 60 to 40
   TITLE_SECTION_HEIGHT: 160, // Reduced from 180 to 160
   
   // Preview thumbnail size
